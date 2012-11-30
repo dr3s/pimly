@@ -25,8 +25,7 @@ object ImapOAuth  {
   
 
   /**
-   * Connects and authenticates to an IMAP server with OAuth2. You must have
-   * called {@code initialize}.
+   * Connects and authenticates to an IMAP server with OAuth2. 
    *
    * @param host Hostname of the imap server, for example {@code
    *     imap.googlemail.com}.
