@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.sasl.SaslClient;
 import javax.security.sasl.SaslClientFactory;
+import java.security.{ PrivilegedAction, AccessController, Provider, Security }
 
 /**
  * A SaslClientFactory that returns instances of OAuth2SaslClient.
@@ -38,5 +39,19 @@ class OAuth2SaslClientFactory extends SaslClientFactory {
 }
 
 object OAuth2SaslClientFactory {
+
+  Security addProvider (SaslProvider)
+
   val OAUTH_SASL_IMAPS_TOKEN_PROP = "mail.imaps.sasl.mechanisms.oauth2.oauthToken"
+}
+
+object SaslProvider extends Provider("OAuth2 Provider", 1.0,
+  "Provides the XOAUTH2 SASL Mechanism") {
+  AccessController.doPrivileged(new PrivilegedAction[this.type] {
+    def run = {
+      put("SaslClientFactory.XOAUTH2",
+        "security.OAuth2SaslClientFactory")
+      null //Magic null is magic
+    }
+  })
 }
