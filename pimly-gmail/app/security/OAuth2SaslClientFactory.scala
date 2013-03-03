@@ -42,7 +42,7 @@ object OAuth2SaslClientFactory {
 
   Security addProvider (SaslProvider)
 
-  val OAUTH_SASL_IMAPS_TOKEN_PROP = "mail.imaps.sasl.mechanisms.oauth2.oauthToken"
+  val OAUTH_SASL_IMAPS_TOKEN_PROP = "mail.gimaps.sasl.mechanisms.oauth2.oauthToken"
 }
 
 object SaslProvider extends Provider("OAuth2 Provider", 1.0,

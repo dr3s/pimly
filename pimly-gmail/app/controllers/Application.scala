@@ -1,39 +1,42 @@
 package controllers
 
 import play.api._
+import play.api.Play.current
+import play.api.libs.concurrent.Akka 
 import play.api.mvc._
 import mail.ImapOAuth
 import javax.mail.Folder
 import javax.mail.NoSuchProviderException
 import javax.mail.MessagingException
+import javax.mail.FetchProfile
+import javax.mail.search.SearchTerm
+import com.sun.mail.imap.IMAPMessage
+import com.sun.mail.imap.protocol.FetchItem
+import javax.mail.FetchProfile.Item
+import com.sun.mail.gimap.GmailMessage
+import com.sun.mail.gimap.GmailFolder
+import akka.actor._
+import akka.pattern._
+import service.InboxSlurper
+import service.InboxAuth._
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import akka.util.Timeout
+import play.api.libs.concurrent.Execution.Implicits._
 
 object Application extends Controller with securesocial.core.SecureSocial {
 
-  def index = SecuredAction() { implicit request =>
-    val store = ImapOAuth.connect("imap.gmail.com",
-      993,
+  def index = SecuredAction { implicit request =>
+    val inboxSlurper = Akka.system.actorOf(Props[InboxSlurper], name = "inboxSlurper")
+    implicit val timeout = Timeout(10 seconds)
+    val f = inboxSlurper.ask(OauthIdentity(
       request.user.email.get,
-      request.user.oAuth2Info.get.accessToken,
-      true)
+      request.user.oAuth2Info.get.accessToken))
 
-    val inbox = store.getFolder("Inbox")
-    try {
-      inbox.open(Folder.READ_ONLY)
-
-      // limit this to 20 message during testing
-      val limit = 20
-      val messages = inbox.getMessages(1, limit)
-      for (message <- messages) {
-
-        println(message.getSubject())
-      }
-
-      Ok(views.html.index("You have %d total messages".format(inbox.getMessageCount())))
-    } finally {
-
-      inbox.close(true)
-      store.close()
+      Async { 
+    	f.map(count => Ok(views.html.index("You have %d total messages".format(count))) )
     }
+    
 
   }
 

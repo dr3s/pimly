@@ -1,6 +1,5 @@
-
-
 package security
+
 import java.util.logging.Logger
 import javax.security.auth.callback.CallbackHandler
 import javax.security.sasl.SaslClient
