@@ -26,7 +26,7 @@ class InboxSlurper extends Actor {
         993,
         id.email,
         id.token,
-        true)
+        false)
 
       val inbox = store.getFolder("Inbox")
 

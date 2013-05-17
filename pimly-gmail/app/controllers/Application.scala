@@ -26,8 +26,10 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 object Application extends Controller with securesocial.core.SecureSocial {
 
-  def index = SecuredAction { implicit request =>
+  
     val inboxSlurper = Akka.system.actorOf(Props[InboxSlurper], name = "inboxSlurper")
+    
+  def index = SecuredAction { implicit request =>
     implicit val timeout = Timeout(10 seconds)
     val f = inboxSlurper.ask(OauthIdentity(
       request.user.email.get,

@@ -11,9 +11,12 @@ object ApplicationBuild extends Build {
     // Add your project dependencies here,
     jdbc,
     anorm,
-    "com.sun.mail" % "javax.mail" % "1.4.7-rc1",
-    "com.sun.mail" % "gimap" % "1.4.7-rc1",
-    "securesocial" %% "securesocial" % "master-SNAPSHOT" exclude("javax.mail", "mail")
+    "com.sun.mail" % "javax.mail" % "1.4.7",
+    "com.sun.mail" % "gimap" % "1.4.7",
+    "securesocial" %% "securesocial" % "master-SNAPSHOT" exclude("javax.mail", "mail"),
+    "com.netflix.astyanax" % "astyanax-cassandra" % "1.56.28",
+    "com.netflix.astyanax" % "astyanax-thrift" % "1.56.28",
+    "com.netflix.astyanax" % "astyanax-entity-mapper" % "1.56.28"
   )
 
 
