@@ -37,7 +37,7 @@ object Application extends Controller with securesocial.core.SecureSocial {
   val inboxSlurper = Akka.system.actorOf(Props[InboxSlurper], name = "inboxSlurper")
     
   def index = SecuredAction { implicit request =>
-    implicit val timeout = Timeout(10 seconds)
+    implicit val timeout = Timeout(10 minutes)
     val user:User = request.user.asInstanceOf[User]
 
     val f = inboxSlurper.ask(
@@ -58,11 +58,13 @@ object Application extends Controller with securesocial.core.SecureSocial {
              result
           }
         }
-        val eventuallyResult: Future[String] = {
-          Iteratee.flatten(emailFeed |>> iter).run
+        val eventuallyResult: Future[String] = emailFeed |>>> iter
+        
+        val result = eventuallyResult map {
+          s => Ok(views.html.index("Subject: ".format(s)))
         }
-        val s = Await.result(eventuallyResult, 10 seconds)
-        Ok(views.html.index("Subject: ".format(s)))
+        Await.result(result, 10 minutes)
+        
       }
     }
     

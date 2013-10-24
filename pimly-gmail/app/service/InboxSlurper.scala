@@ -11,6 +11,8 @@ import com.sun.mail.gimap.GmailMessage
 import service.InboxAuth._
 import play.api.libs.iteratee.{Concurrent, Enumerator}
 import javax.mail.Message
+import play.api.libs.concurrent.Execution.Implicits._
+import play.Logger
 
 object InboxAuth {
   
@@ -18,9 +20,6 @@ object InboxAuth {
 }
 
 class InboxSlurper extends Actor {
-  import play.api.libs.concurrent.Execution.Implicits._
-  val log = Logging(context.system, this)
-
 
   def receive = {
     case id:OauthIdentity => {
@@ -53,24 +52,26 @@ class InboxSlurper extends Actor {
         inbox.fetch(messages, profile)
         for (message <- messages) {
           val gmailMsg = message.asInstanceOf[GmailMessage]
-          log.debug(message.getSubject())
-          log.debug("GMail Msg Id: " + gmailMsg.getMsgId())
-          log.debug("GMail Labels: " + gmailMsg.getLabels())
+          Logger.debug(message.getSubject())
+          Logger.debug("GMail Msg Id: " + gmailMsg.getMsgId())
+          Logger.debug("GMail Labels: " + gmailMsg.getLabels())
         }
         val emailFeed = Concurrent.unicast[Message] (
           onStart = {
             pushee => {
-              log.debug("Pushing 1")
+              Logger.debug("Pushing 1")
               pushee.push(messages.apply(0))
-              log.debug("Pushed 1")
-
+              Logger.debug("Pushed 1")
+              pushee.eofAndEnd
             }
-            },
+          },
           onComplete = {
-            log.debug("Done with pushee")
+	          Logger.debug("Done with pushee")
+	           
+          	
           },
           onError = {
-            (msg, in) => log.error(msg)
+            (msg, in) => Logger.error(msg)
           }
         )
         sender ! emailFeed
@@ -80,6 +81,6 @@ class InboxSlurper extends Actor {
         store.close()
       }
     }
-    case _ => log.error("Unknown message")
+    case _ => Logger.error("Unknown message")
   }
 }
