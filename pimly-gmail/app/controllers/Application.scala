@@ -51,17 +51,17 @@ object Application extends Controller with securesocial.core.SecureSocial {
       f.map { reply =>
         val emailFeed = reply.asInstanceOf[Enumerator[Message]]
         val iter =  Iteratee.fold[Message,String] ("") {
-          (result, msg) =>   {
-             Logger.debug("appending subj")
-             result ++ msg.getSubject()
-             Logger.debug(" subj appended")
-             result
-          }
+          (result, msg) => 
+             result + msg.getSubject()
+          
         }
         val eventuallyResult: Future[String] = emailFeed |>>> iter
         
         val result = eventuallyResult map {
-          s => Ok(views.html.index("Subject: ".format(s)))
+          s => {
+            Logger.debug(s);
+            Ok(views.html.index("Subject: %s".format(s)))
+          }
         }
         Await.result(result, 10 minutes)
         
