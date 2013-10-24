@@ -1,17 +1,13 @@
 package model
 
-import securesocial.core.AuthenticationMethod
+import securesocial.core._
 import javax.persistence.Column
-import securesocial.core.UserId
-import securesocial.core.OAuth1Info
-import securesocial.core.PasswordInfo
-import securesocial.core.OAuth2Info
-import securesocial.core.Identity
 import javax.persistence.Entity
 import javax.persistence.Id
-import securesocial.core.UserId
+import securesocial.core.PasswordInfo
+import scala.Some
+import securesocial.core.OAuth2Info
 import securesocial.core.OAuth1Info
-import securesocial.core.OAuth2Constants
 
 @Entity
 class User() extends securesocial.core.Identity {
@@ -21,7 +17,7 @@ class User() extends securesocial.core.Identity {
     emailV = other.email.get
     firstNameV = other.firstName
     fullNameV = other.fullName
-    idV = other.id.id
+    idV = other.identityId.userId
     lastNameV = other.lastName
     oAuth2Token = other.oAuth2Info.get.accessToken
   }
@@ -42,7 +38,7 @@ class User() extends securesocial.core.Identity {
   def email: Option[String] = Some(emailV)
   def firstName: String = firstNameV
   def fullName: String = fullNameV
-  def id: UserId = new UserId(idV, idV)
+  def identityId: IdentityId = new IdentityId(idV, idV)
   def lastName: String = lastNameV
   def oAuth1Info: Option[OAuth1Info] = oAuth1InfoV
   def oAuth2Info: Option[OAuth2Info] =  Some(OAuth2Info(oAuth2Token, None, null, null))

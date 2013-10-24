@@ -17,11 +17,10 @@
 package service
 
 import play.api.{Logger, Application}
-import securesocial.core.{UserServicePlugin, UserId, SocialUser}
-import java.util.UUID
+import securesocial.core._
 import org.joda.time.DateTime
 import securesocial.core.providers.Token
-import securesocial.core.Identity
+import securesocial.core.providers.Token
 
 
 /**
@@ -47,11 +46,11 @@ class InMemoryUserService(application: Application) extends UserServicePlugin(ap
    * @param id the user id
    * @return an optional user
    */
-  def find(id: UserId):Option[Identity] = {
+  def find(id: IdentityId):Option[Identity] = {
     if ( Logger.isDebugEnabled ) {
       Logger.debug("users = %s".format(users))
     }
-    users.get(id.id + id.providerId)
+    users.get(id.userId + id.providerId)
   }
 
   /**
@@ -69,7 +68,7 @@ class InMemoryUserService(application: Application) extends UserServicePlugin(ap
     if ( Logger.isDebugEnabled ) {
       Logger.debug("users = %s".format(users))
     }
-    users.values.find( u => u.email.map( e => e == email && u.id.providerId == providerId).getOrElse(false))
+    users.values.find( u => u.email.map( e => e == email && u.identityId.providerId == providerId).getOrElse(false))
   }
 
   /**
@@ -78,7 +77,7 @@ class InMemoryUserService(application: Application) extends UserServicePlugin(ap
    * @param user
    */
   def save(user: Identity):Identity = {
-    users = users + (user.id.id + user.id.providerId -> user)
+    users = users + (user.identityId.userId + user.identityId.providerId -> user)
     user
   }
 

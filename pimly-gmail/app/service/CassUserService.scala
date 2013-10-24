@@ -25,7 +25,7 @@ import securesocial.core.providers.Token
 import com.netflix.astyanax.model.ColumnFamily
 import com.netflix.astyanax.serializers.StringSerializer
 import com.netflix.astyanax.entitystore.DefaultEntityManager
-import securesocial.core.UserId
+import securesocial.core.IdentityId
 import play.Logger
 
 
@@ -54,13 +54,13 @@ class CassUserService(application: Application) extends UserServicePlugin(applic
    * @param id the user id
    * @return an optional user
    */
-  def find(id: UserId):Option[Identity] = {
+  def find(id: IdentityId):Option[Identity] = {
     if ( Logger.isDebugEnabled ) {
       Logger.debug("users = %s".format(users))
     }
-    users.get(id.id + id.providerId)
+    users.get(id.userId + id.providerId)
     
-    Some(db.get(id.id))
+    Some(db.get(id.userId))
   }
 
   /**
@@ -78,7 +78,7 @@ class CassUserService(application: Application) extends UserServicePlugin(applic
     if ( Logger.isDebugEnabled ) {
       Logger.debug("users = %s".format(users))
     }
-    users.values.find( u => u.email.map( e => e == email && u.id.providerId == providerId).getOrElse(false))
+    users.values.find( u => u.email.map( e => e == email && u.identityId.providerId == providerId).getOrElse(false))
   }
 
   /**
@@ -87,7 +87,7 @@ class CassUserService(application: Application) extends UserServicePlugin(applic
    * @param user
    */
   def save(user: Identity):Identity = {
-    users = users + (user.id.id + user.id.providerId -> user)
+    users = users + (user.identityId.userId + user.identityId.providerId -> user)
     db.put(new User(user))
     
     user
