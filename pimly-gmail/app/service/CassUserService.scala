@@ -36,16 +36,14 @@ import play.Logger
  * it stores everything in memory.
  */
 class CassUserService(application: Application) extends UserServicePlugin(application) {
-  private var users = Map[String, Identity]()
-  private var tokens = Map[String, Token]()
-
+ 
   val family = ColumnFamily.newColumnFamily("users", 
      StringSerializer.get(), StringSerializer.get())
   val db = Cassandra.entityManager(classOf[User], family)
-		
-  def deleteTokens() {
-    tokens = Map()
-  }
+//		
+//  def deleteTokens() {
+//    tokens = Map()
+//  }
 
   
     /**
@@ -55,12 +53,8 @@ class CassUserService(application: Application) extends UserServicePlugin(applic
    * @return an optional user
    */
   def find(id: IdentityId):Option[Identity] = {
-    if ( Logger.isDebugEnabled ) {
-      Logger.debug("users = %s".format(users))
-    }
-    users.get(id.userId + id.providerId)
-    
-    Some(db.get(id.userId))
+    val query = new User(id)
+    Some(db.get(query.idV))
   }
 
   /**
@@ -75,10 +69,7 @@ class CassUserService(application: Application) extends UserServicePlugin(applic
    */
   def findByEmailAndProvider(email: String, providerId: String):Option[Identity] =
   {
-    if ( Logger.isDebugEnabled ) {
-      Logger.debug("users = %s".format(users))
-    }
-    users.values.find( u => u.email.map( e => e == email && u.identityId.providerId == providerId).getOrElse(false))
+    Option.empty
   }
 
   /**
@@ -87,7 +78,6 @@ class CassUserService(application: Application) extends UserServicePlugin(applic
    * @param user
    */
   def save(user: Identity):Identity = {
-    users = users + (user.identityId.userId + user.identityId.providerId -> user)
     db.put(new User(user))
     
     user
@@ -104,7 +94,6 @@ class CassUserService(application: Application) extends UserServicePlugin(applic
    * @return A string with a uuid that will be embedded in the welcome email.
    */
   def save(token: Token) = {
-    tokens += (token.uuid -> token)
   }
 
 
@@ -118,7 +107,7 @@ class CassUserService(application: Application) extends UserServicePlugin(applic
    * @return
    */
   def findToken(token: String): Option[Token] = {
-    tokens.get(token)
+    return Option.empty
   }
 
   /**
@@ -130,7 +119,6 @@ class CassUserService(application: Application) extends UserServicePlugin(applic
    * @param uuid the token id
    */
   def deleteToken(uuid: String) {
-    tokens -= uuid
   }
 
   /**
@@ -141,7 +129,6 @@ class CassUserService(application: Application) extends UserServicePlugin(applic
    *
    */
   def deleteExpiredTokens() {
-    tokens = tokens.filter(!_._2.isExpired)
   }
  
 }

@@ -18,7 +18,6 @@ import com.sun.mail.gimap.GmailFolder
 import akka.actor._
 import akka.pattern._
 import service.InboxSlurper
-import service.InboxAuth._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import akka.util.Timeout
@@ -29,47 +28,20 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import model.User
 import securesocial.core.SecureSocial._
-import service.InboxAuth.OauthIdentity
+import securesocial.core.SecuredRequest
 
 object Application extends Controller with securesocial.core.SecureSocial {
 
-  
   val inboxSlurper = Akka.system.actorOf(Props[InboxSlurper], name = "inboxSlurper")
-    
-  def index = SecuredAction { implicit request =>
-    implicit val timeout = Timeout(10 minutes)
-    val user:User = request.user.asInstanceOf[User]
 
-    val f = inboxSlurper.ask(
+  def index = SecuredAction {
+    implicit request =>
+      val user: User = request.user.asInstanceOf[User]
 
-      OauthIdentity(
-        user.email.get,
-        user.oAuth2Info.get.accessToken)
-    )
+      inboxSlurper ! user
 
-    Async {
-      f.map { reply =>
-        val emailFeed = reply.asInstanceOf[Enumerator[Message]]
-        val iter =  Iteratee.fold[Message,String] ("") {
-          (result, msg) => 
-             result + msg.getSubject()
-          
-        }
-        val eventuallyResult: Future[String] = emailFeed |>>> iter
-        
-        val result = eventuallyResult map {
-          s => {
-            Logger.debug(s);
-            Ok(views.html.index("Subject: %s".format(s)))
-          }
-        }
-        Await.result(result, 10 minutes)
-        
-      }
-    }
-    
+      Ok(views.html.index("ALL DONE"))
 
   }
-    
 
 }

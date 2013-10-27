@@ -12,6 +12,7 @@ import javax.mail.URLName
 import security.OAuth2SaslClientFactory._
 import com.sun.mail.gimap.GmailStore
 import com.sun.mail.gimap.GmailSSLStore
+import securesocial.core.OAuth2Info
 
 /**
  * Performs OAuth2 authentication.
@@ -41,18 +42,18 @@ object ImapOAuth  {
    */
   def connect(host: String,
     port: Int,
-    userEmail: String,
-    oauthToken: String,
+    userEmail: Option[String],
+    oAuth2Info: Option[OAuth2Info],
     debug: Boolean): GmailStore = {
     val m = Map("mail.gimaps.sasl.enable" -> "true",
       "mail.gimaps.sasl.mechanisms" -> "XOAUTH2",
-      OAUTH_SASL_IMAPS_TOKEN_PROP -> oauthToken)
+      OAUTH_SASL_IMAPS_TOKEN_PROP -> oAuth2Info.get.accessToken)
     val p = new Properties();
     m.foreach { case (k, v) => p.put(k, v) }
     val session = Session.getInstance(p)
     session.setDebug(debug)
     val store = new GmailSSLStore(session, null)
-    store.connect(host, port, userEmail, "")
+    store.connect(host, port, userEmail.get, "")
     return store
   }
 

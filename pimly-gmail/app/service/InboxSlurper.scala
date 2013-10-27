@@ -8,26 +8,32 @@ import javax.mail.FetchProfile
 import com.sun.mail.gimap.GmailFolder
 import javax.mail.Folder
 import com.sun.mail.gimap.GmailMessage
-import service.InboxAuth._
-import play.api.libs.iteratee.{Concurrent, Enumerator}
+import play.api.libs.iteratee.{ Concurrent, Enumerator }
 import javax.mail.Message
 import play.api.libs.concurrent.Execution.Implicits._
 import play.Logger
+import play.api.libs.iteratee.Iteratee
+import play.api.libs.concurrent.Akka
+import db.MailMetaDao
+import javax.mail.Flags
+import javax.mail.search.FlagTerm
+import javax.mail.search.ReceivedDateTerm
+import javax.mail.search.ComparisonTerm
+import org.joda.time.LocalDateTime
+import javax.mail.search.AndTerm
+import model.User
 
-object InboxAuth {
-  
-  case class OauthIdentity(email: String, token: String)
-}
+
 
 class InboxSlurper extends Actor {
 
   def receive = {
-    case id:OauthIdentity => {
+    case user: User => {
 
       val store = ImapOAuth.connect("imap.gmail.com",
         993,
-        id.email,
-        id.token,
+        user.email,
+        user.oAuth2Info,
         false)
 
       val inbox = store.getFolder("Inbox")
@@ -41,45 +47,47 @@ class InboxSlurper extends Actor {
       profile.add("X-GM-MSGID")
       profile.add("X-GM-THRID")
       profile.add("X-GM-LABELS")
-      try {
-        inbox.open(Folder.READ_ONLY)
+      inbox.open(Folder.READ_ONLY)
 
-        val count = inbox.getMessageCount()
-        // limit this to 20 message during testing
-        val limit = 1
-        val ginbox = inbox.asInstanceOf[GmailFolder]
-        val messages = ginbox.getMessages(count - limit, count)
-        inbox.fetch(messages, profile)
-        for (message <- messages) {
-          val gmailMsg = message.asInstanceOf[GmailMessage]
-          Logger.debug(message.getSubject())
-          Logger.debug("GMail Msg Id: " + gmailMsg.getMsgId())
-          Logger.debug("GMail Labels: " + gmailMsg.getLabels())
-        }
-        val emailFeed = Concurrent.unicast[Message] (
-          onStart = {
-            pushee => {
-              Logger.debug("Pushing 1")
-              pushee.push(messages.apply(0))
-              Logger.debug("Pushed 1")
+      //        val count = inbox.getMessageCount()
+      // limit this to 20 message during testing
+      //        val limit = 10
+      val ginbox = inbox.asInstanceOf[GmailFolder]
+      val seen = new Flags(Flags.Flag.SEEN)
+      val unseenFlagTerm = new FlagTerm(seen, false)
+      val newerThan = new ReceivedDateTerm(ComparisonTerm.GT, LocalDateTime.now().minusDays(1).toDate())
+      val andTerm = new AndTerm(unseenFlagTerm, newerThan)
+      val messages = ginbox.search(newerThan)
+      //        val messages = ginbox.getMessages(count - limit + 1, count)
+      inbox.fetch(messages, profile)
+      val emailFeed = Concurrent.unicast[Message](
+        onStart = {
+          pushee =>
+            {
+              Logger.debug("Pushing all")
+              messages.foreach(msg => {
+                Logger.debug("Pushing: " + msg)
+                pushee.push(msg)
+              })
               pushee.eofAndEnd
             }
-          },
-          onComplete = {
-	          Logger.debug("Done with pushee")
-	           
-          	
-          },
-          onError = {
-            (msg, in) => Logger.error(msg)
-          }
-        )
-        sender ! emailFeed
-      } finally {
+        },
+        onComplete = {
+          Logger.debug("Done with pushee")
+          //            inbox.close(true)
+          //            store.close()
 
-        inbox.close(true)
-        store.close()
+        },
+        onError = {
+          (msg, in) => Logger.error(msg)
+        })
+      val db = context.actorOf(Props[MailMetaDao])
+      val iter = Iteratee.foreach[Message] { msg =>
+        Logger.debug("sending msg to db")
+        db ! (user, msg)
       }
+      emailFeed |>>> iter
+
     }
     case _ => Logger.error("Unknown message")
   }
